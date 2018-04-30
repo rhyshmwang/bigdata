@@ -39,7 +39,7 @@ yagoThreeSimplified.txt。共12430689行，其中三行数据不是三元组，�
 ```text
 针对不同的查询分别建立索引提高查询性能：查询1、3建立关于"s"的索引，查询2、4建立关于"o"的索引
 索引的构建采用了Redis的set数据类型，每个对应的value生成一个set，set内部保存着这个value所在的hash的key值。
-比如 key 155 的si是Elizabeth_II，则 sadd spo.index.s:Elizabeth_II 155。
+比如 key 155 的si是Elizabeth_II，则 sadd spomillion.index.s:Elizabeth_II 155。
 ```
 
 ### MongoDB
@@ -134,6 +134,82 @@ yagoThreeSimplified.txt。共12430689行，其中三行数据不是三元组，�
 | | cassandra-driver | 3.14.0 |
 
 
+# 存储模式和优化
 
+统计时间采用python的`datetime`库，使用了`timedelta.totalseconds()`方法
 
+### Redis
+
+* 基本存储方式
+
+```python
+r = redis.Redis(host='127.0.0.1', port=6379,db=0)
+regex = r'(.*?)\s(.*?)\s(.*?)\s'
+rePattern = re.compile(regex)
+i = 0
+for line in tqdm(lines):
+    i = i + 1
+    matchObj = rePattern.match(line)
+    r.hset('spomillion:' + str(i), 's', matchObj.group(1))
+    r.hset('spomillion:' + str(i), 'p', matchObj.group(2))
+    r.hset('spomillion:' + str(i), 'o', matchObj.group(3))
+```
+
+建库时间：3741s
+
+* 优化
+
+以下只展示如何在 s 上建立索引的**关键代码**
+
+```python
+# 首先读出所有数据，存在 rs1 中，比如第i条的s是si
+si = rs1[i]['s']
+# 把对应的行加到si 的索引里
+index_s_key_str = 'spomillion.index.s:'
+tmp_index_s_key_str = index_s_key_str + si
+tmp_key_str = key_str + str(cur_row)
+pipe.sadd(tmp_index_s_key_str, tmp_key_str)
+```
+
+即如前面所说，key 155 的si是Elizabeth_II，则 `sadd spomillion.index.s:Elizabeth_II 155`。
+
+建立s索引：
+
+建立o索引：
+
+### MongoDB
+
+* 基本存储方式
+
+```python
+rows = []
+spo = line.strip().split(' ', 3)
+row_dict = {'s': spo[0],
+            'p': spo[1],
+            'o': spo[2]}
+rows.append(row_dict)
+# 将所有数据按字典形式存在了 rows中
+
+client = MongoClient('localhost', 27017)
+db = client.get_database('bigdata')
+spo = db.get_collection('spomillion')
+
+rs = spo.insert_many(rows)
+```
+
+建库时间：
+
+* 优化
+
+利用MongoDB自带的功能，在s上建立索引，如下
+
+```python
+def index_s():
+    spo.ensure_index([('s', pymongo.ASCENDING)])
+    return
+```
+
+建立s索引：
+
+建立o索引：
 
