@@ -121,7 +121,7 @@ yagoThreeSimplified.txt。共12430689行，其中三行数据不是三元组，�
 # 实验环境
 
 | | |  |
-| | - | :-: |
+| - | :-: | -: |
 | 运行环境 | CPU | 2.9ghz core i5 |
 | | 内存 | 8g 1867mhz ddr3 |
 | | OS | macOS10.13.3 |
