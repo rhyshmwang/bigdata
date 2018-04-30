@@ -20,6 +20,15 @@
 查询4 oi = India
 ```
 
+测试输出结果（简单说明）
+
+```text
+查询1 
+查询2 
+查询3 
+查询4 
+```
+
 ## 使用数据
 
 yagoThreeSimplified.txt。共12430689行，其中三行数据不是三元组，有效数据12430686行。
@@ -177,6 +186,8 @@ pipe.sadd(tmp_index_s_key_str, tmp_key_str)
 
 建立o索引：
 
+没有对P建立索引。
+
 ### MongoDB
 
 * 基本存储方式
@@ -211,5 +222,219 @@ def index_s():
 
 建立s索引：
 
+建立p索引：
+
 建立o索引：
 
+### Cassandra
+
+* 基本存储方式
+
+```python
+create_spo_cql = 'create table if not exists spomillion' \
+                 '("id" int, "s" varchar, "p" varchar, "o" varchar, primary key("id", "s") );'
+session.execute(create_spo_cql)
+
+# 用unlogged batch 每次插入100行
+insert_spo_cql = 'insert into bigdata.spomillion("id", "s", "p", "o") values ' \
+                 '({0}, \'{1}\', \'{2}\', \'{3}\');'
+batch_cql_head = 'begin unlogged batch \n'
+batch_cql_tail = '\napply batch;'
+
+for i in tqdm.trange(0, len(rows), 100):
+    if (len(rows) - i) <= 100:
+        # 退出循环，单独处理
+        last_batch_begin = i  # 从最后的一个 *00 开始
+        break
+
+    batch_cql = batch_cql_head
+    for j in range(i, i + 100):
+        spo = rows[j].split(' ', 3)
+        batch_cql = batch_cql + insert_spo_cql.format(j+1 , spo[0], spo[1], spo[2])
+    batch_cql = batch_cql + batch_cql_tail
+    session.execute(batch_cql)
+for i in tqdm.trange(last_batch_begin, len(rows)):
+    spo = rows[i].split(' ', 3)
+    session.execute(insert_spo_cql.format(i+1, spo[0], spo[1], spo[2]))
+```
+
+建库时间：
+
+* 优化
+
+利用Cassandra自带的功能，在s上建立索引，如下
+
+```python
+def index_s():
+    session.execute("create index if not exists on bigdata.spomillion(\"s\")")
+    return
+```
+
+建立s索引：
+
+建立p索引：
+
+建立o索引：
+
+# 4个查询的构建方法
+
+### Redis
+
+##### 本地筛选
+
+* 问题1
+```text
+
+```
+
+* 问题2
+```text
+
+```
+
+* 问题3
+```text
+
+```
+
+* 问题4
+```text
+
+```
+
+###### 优化
+
+* 问题1
+```text
+
+```
+
+* 问题2
+```text
+
+```
+
+* 问题3
+```text
+
+```
+
+* 问题4
+```text
+
+```
+
+### MongoDB
+
+* 问题1
+```text
+
+```
+
+* 问题2
+```text
+
+```
+
+* 问题3
+```text
+
+```
+
+* 问题4
+```text
+
+```
+
+###### 优化
+
+* 问题1
+```text
+
+```
+
+* 问题2
+```text
+
+```
+
+* 问题3
+```text
+
+```
+
+* 问题4
+```text
+
+```
+
+### Cassandra
+
+* 问题1
+```text
+
+```
+
+* 问题2
+```text
+
+```
+
+* 问题3
+```text
+
+```
+
+* 问题4
+```text
+
+```
+
+###### 优化
+
+* 问题1
+```text
+
+```
+
+* 问题2
+```text
+
+```
+
+* 问题3
+```text
+
+```
+
+* 问题4
+```text
+
+```
+
+# 基本查询效率横向比较
+
+单位 秒
+
+| | Redis | MongoDB | Cassandra |
+| - | :-: | :-: | -: |
+| 查询1 |  |  |  |
+| 查询2 |  |  |  |
+| 查询3 |  |  |  |
+| 查询4 |  |  |  |
+
+# 优化后查询效率横向比较
+
+单位 秒
+
+| | Redis | MongoDB | Cassandra |
+| - | :-: | :-: | -: |
+| 查询1 |  |  |  |
+| 查询2 |  |  |  |
+| 查询3 |  |  |  |
+| 查询4 |  |  |  |
+
+# 结论与体会
+
+
+哈哈哈
